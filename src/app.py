@@ -10,6 +10,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
 import os
 from pathlib import Path
+import json
 
 app = FastAPI(title="Mergington High School API",
               description="API for viewing and signing up for extracurricular activities")
@@ -18,6 +19,11 @@ app = FastAPI(title="Mergington High School API",
 current_dir = Path(__file__).parent
 app.mount("/static", StaticFiles(directory=os.path.join(Path(__file__).parent,
           "static")), name="static")
+
+# Load teachers data
+with open(os.path.join(current_dir, "teachers.json")) as f:
+    teachers_data = json.load(f)
+teachers = teachers_data["teachers"]
 
 # In-memory activity database
 activities = {
@@ -130,3 +136,12 @@ def unregister_from_activity(activity_name: str, email: str):
     # Remove student
     activity["participants"].remove(email)
     return {"message": f"Unregistered {email} from {activity_name}"}
+
+
+@app.post("/login")
+def login(credentials: dict):
+    username = credentials.get("username")
+    password = credentials.get("password")
+    if username in teachers and teachers[username] == password:
+        return {"logged_in": True, "role": "teacher"}
+    return {"logged_in": False}
