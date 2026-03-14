@@ -4,6 +4,65 @@ document.addEventListener("DOMContentLoaded", () => {
   const signupForm = document.getElementById("signup-form");
   const messageDiv = document.getElementById("message");
 
+  let isLoggedIn = localStorage.getItem('loggedIn') === 'true';
+
+  const authBtn = document.getElementById('auth-btn');
+  const loginModal = document.getElementById('login-modal');
+  const loginForm = document.getElementById('login-form');
+  const signupContainer = document.getElementById('signup-container');
+  const closeBtn = document.querySelector('.close');
+
+  updateAuthUI();
+
+  authBtn.addEventListener('click', () => {
+    if (isLoggedIn) {
+      logout();
+    } else {
+      loginModal.classList.remove('hidden');
+    }
+  });
+
+  closeBtn.addEventListener('click', () => {
+    loginModal.classList.add('hidden');
+  });
+
+  loginForm.addEventListener('submit', handleLogin);
+
+  function updateAuthUI() {
+    authBtn.textContent = isLoggedIn ? 'Logout' : 'Login';
+    signupContainer.style.display = isLoggedIn ? 'block' : 'none';
+  }
+
+  function handleLogin(e) {
+    e.preventDefault();
+    const username = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
+    fetch('/login', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({username, password})
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.logged_in) {
+        isLoggedIn = true;
+        localStorage.setItem('loggedIn', 'true');
+        updateAuthUI();
+        loginModal.classList.add('hidden');
+        fetchActivities();
+      } else {
+        alert('Invalid credentials');
+      }
+    });
+  }
+
+  function logout() {
+    isLoggedIn = false;
+    localStorage.removeItem('loggedIn');
+    updateAuthUI();
+    fetchActivities();
+  }
+
   // Function to fetch activities from API
   async function fetchActivities() {
     try {
@@ -30,7 +89,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 ${details.participants
                   .map(
                     (email) =>
-                      `<li><span class="participant-email">${email}</span><button class="delete-btn" data-activity="${name}" data-email="${email}">❌</button></li>`
+                      `<li><span class="participant-email">${email}</span>${isLoggedIn ? `<button class="delete-btn" data-activity="${name}" data-email="${email}">❌</button>` : ''}</li>`
                   )
                   .join("")}
               </ul>
